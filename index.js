@@ -10,6 +10,9 @@ const PORT = process.env.PORT || 3000;
 app.use(bodyParser.json());
 app.use(express.json())
 
+app.use("/",(req,res)=>{
+  res.send({"msg":"this is poll application"})
+})
 app.use("polls",pollRouter)
 
 
