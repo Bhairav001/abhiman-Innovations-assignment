@@ -1,4 +1,5 @@
 const express = require("express");
+const { PollModel } = require("../model/poll.model");
 
 const pollRouter = express.Router()
 
@@ -6,7 +7,7 @@ const pollRouter = express.Router()
 // Create a new poll
 pollRouter.post('/create', async (req, res) => {
   try {
-    const newPoll = await Poll.create(req.body);
+    const newPoll = await PollModel.create(req.body);
     res.status(201).json(newPoll);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -16,7 +17,7 @@ pollRouter.post('/create', async (req, res) => {
 // Retrieve a list of available polls
 pollRouter.get('/', async (req, res) => {
   try {
-    const polls = await Poll.find();
+    const polls = await PollModel.find();
     res.status(200).json(polls);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -30,7 +31,7 @@ pollRouter.post('/:pollId/vote', async (req, res) => {
   const { optionIndex } = req.body;
 
   try {
-    const poll = await Poll.findById(pollId);
+    const poll = await PollModel.findById(pollId);
 
     if (!poll) {
       return res.status(404).json({ error: 'Poll not found' });
