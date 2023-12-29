@@ -3,48 +3,54 @@ const express = require("express");
 const pollRouter = express.Router()
 
 
-pollRouter.post('/polls', (req, res) => {
-    const { question, options } = req.body;
-  
-    const insertQuery = 'INSERT INTO polls (question, options) VALUES (?, ?)';
-    db.query(insertQuery, [question, JSON.stringify(options)], (err, result) => {
-      if (err) {
-        console.error('Error creating poll: ', err);
-        res.status(500).json({ error: 'Internal Server Error' });
-      } else {
-        res.status(201).json({ message: 'Poll created successfully', pollId: result.insertId });
-      }
-    });
-  });
-  
-  pollRouter.get('/polls', (req, res) => {
-    const selectQuery = 'SELECT * FROM polls';
-    db.query(selectQuery, (err, rows) => {
-      if (err) {
-        console.error('Error retrieving polls: ', err);
-        res.status(500).json({ error: 'Internal Server Error' });
-      } else {
-        res.status(200).json({ polls: rows });
-      }
-    });
-  });
-  
-  // Vote on a poll
-  pollRouter.post('/polls/:pollId/vote', (req, res) => {
-    const { pollId } = req.params;
-    const { userId, choice } = req.body;
-  
-    const updateQuery = 'UPDATE polls SET votes = JSON_SET(votes, ?,"$number", JSON_EXTRACT(votes, ?) + 1) WHERE id = ?';
-    db.query(updateQuery, [`$.${choice}`, `$.${choice}`, pollId], (err, result) => {
-      if (err) {
-        console.error('Error recording vote: ', err);
-        res.status(500).json({ error: 'Internal Server Error' });
-      } else {
-        res.status(200).json({ message: 'Vote recorded successfully' });
-      }
-    });
-  });
-
-  module.exports={
-    pollRouter
+// Create a new poll
+pollRouter.post('/create', async (req, res) => {
+  try {
+    const newPoll = await Poll.create(req.body);
+    res.status(201).json(newPoll);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
+});
+
+// Retrieve a list of available polls
+pollRouter.get('/', async (req, res) => {
+  try {
+    const polls = await Poll.find();
+    res.status(200).json(polls);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
+// Vote on a poll
+pollRouter.post('/:pollId/vote', async (req, res) => {
+  const { pollId } = req.params;
+  const { optionIndex } = req.body;
+
+  try {
+    const poll = await Poll.findById(pollId);
+
+    if (!poll) {
+      return res.status(404).json({ error: 'Poll not found' });
+    }
+
+    if (optionIndex < 0 || optionIndex >= poll.options.length) {
+      return res.status(400).json({ error: 'Invalid option index' });
+    }
+
+    poll.options[optionIndex].votes += 1;
+
+    await poll.save();
+
+    res.status(200).json(poll);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
+module.exports = {
+  pollRouter
+}
